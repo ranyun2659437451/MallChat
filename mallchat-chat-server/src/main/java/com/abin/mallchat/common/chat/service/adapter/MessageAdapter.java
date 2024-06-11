@@ -13,7 +13,12 @@ import com.abin.mallchat.common.chat.service.strategy.msg.AbstractMsgHandler;
 import com.abin.mallchat.common.chat.service.strategy.msg.MsgHandlerFactory;
 import com.abin.mallchat.common.common.domain.enums.YesOrNoEnum;
 
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /**
@@ -38,11 +43,11 @@ public class MessageAdapter {
     public static List<ChatMessageResp> buildMsgResp(List<Message> messages, List<MessageMark> msgMark, Long receiveUid) {
         Map<Long, List<MessageMark>> markMap = msgMark.stream().collect(Collectors.groupingBy(MessageMark::getMsgId));
         return messages.stream().map(a -> {
-            ChatMessageResp resp = new ChatMessageResp();
-            resp.setFromUser(buildFromUser(a.getFromUid()));
-            resp.setMessage(buildMessage(a, markMap.getOrDefault(a.getId(), new ArrayList<>()), receiveUid));
-            return resp;
-        })
+                    ChatMessageResp resp = new ChatMessageResp();
+                    resp.setFromUser(buildFromUser(a.getFromUid()));
+                    resp.setMessage(buildMessage(a, markMap.getOrDefault(a.getId(), new ArrayList<>()), receiveUid));
+                    return resp;
+                })
                 .sorted(Comparator.comparing(a -> a.getMessage().getSendTime()))//帮前端排好序，更方便它展示
                 .collect(Collectors.toList());
     }

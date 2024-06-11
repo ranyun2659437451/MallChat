@@ -80,7 +80,7 @@ public class Room implements Serializable {
     private Date updateTime;
 
 
-    @JsonIgnore
+    @JsonIgnore // 忽略序列化
     public boolean isHotRoom() {
         return HotFlagEnum.of(this.hotFlag) == HotFlagEnum.YES;
     }

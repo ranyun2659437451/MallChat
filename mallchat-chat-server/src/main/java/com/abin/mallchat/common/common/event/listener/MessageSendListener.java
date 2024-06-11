@@ -69,7 +69,7 @@ public class MessageSendListener {
     @TransactionalEventListener(phase = TransactionPhase.BEFORE_COMMIT, classes = MessageSendEvent.class, fallbackExecution = true)
     public void messageRoute(MessageSendEvent event) {
         Long msgId = event.getMsgId();
-        mqProducer.sendSecureMsg(MQConstant.SEND_MSG_TOPIC, new MsgSendMessageDTO(msgId), msgId);
+        mqProducer.sendSecureMsg(MQConstant.SEND_MSG_TOPIC, new MsgSendMessageDTO(msgId), msgId);// 发送消息到消息队列mq
     }
 
     @TransactionalEventListener(classes = MessageSendEvent.class, fallbackExecution = true)
@@ -77,7 +77,7 @@ public class MessageSendListener {
         Message message = messageDao.getById(event.getMsgId());
         Room room = roomCache.get(message.getRoomId());
         if (isHotRoom(room)) {
-            openAIService.chat(message);
+            openAIService.chat(message); //@机器人 机器人自动回复
         }
     }
 

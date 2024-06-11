@@ -1,10 +1,10 @@
 package com.abin.mallchat.common.user.service.impl;
 
 import cn.hutool.core.util.StrUtil;
+import com.abin.mallchat.common.common.algorithm.sensitiveWord.SensitiveWordBs;
 import com.abin.mallchat.common.common.event.UserBlackEvent;
 import com.abin.mallchat.common.common.event.UserRegisterEvent;
 import com.abin.mallchat.common.common.utils.AssertUtil;
-import com.abin.mallchat.common.common.algorithm.sensitiveWord.SensitiveWordBs;
 import com.abin.mallchat.common.user.dao.BlackDao;
 import com.abin.mallchat.common.user.dao.ItemConfigDao;
 import com.abin.mallchat.common.user.dao.UserBackpackDao;
@@ -18,7 +18,11 @@ import com.abin.mallchat.common.user.domain.entity.UserBackpack;
 import com.abin.mallchat.common.user.domain.enums.BlackTypeEnum;
 import com.abin.mallchat.common.user.domain.enums.ItemEnum;
 import com.abin.mallchat.common.user.domain.enums.ItemTypeEnum;
-import com.abin.mallchat.common.user.domain.vo.request.user.*;
+import com.abin.mallchat.common.user.domain.vo.request.user.BlackReq;
+import com.abin.mallchat.common.user.domain.vo.request.user.ItemInfoReq;
+import com.abin.mallchat.common.user.domain.vo.request.user.ModifyNameReq;
+import com.abin.mallchat.common.user.domain.vo.request.user.SummeryInfoReq;
+import com.abin.mallchat.common.user.domain.vo.request.user.WearingBadgeReq;
 import com.abin.mallchat.common.user.domain.vo.response.user.BadgeResp;
 import com.abin.mallchat.common.user.domain.vo.response.user.UserInfoResp;
 import com.abin.mallchat.common.user.service.UserService;
@@ -140,10 +144,10 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<SummeryInfoDTO> getSummeryUserInfo(SummeryInfoReq req) {
-        //需要前端同步的uid
+        //需要更新信息的uid集合
         List<Long> uidList = getNeedSyncUidList(req.getReqList());
-        //加载用户信息
-        Map<Long, SummeryInfoDTO> batch = userSummaryCache.getBatch(uidList);
+        //加载用户信息  批量缓存框架
+        Map<Long, SummeryInfoDTO> batch = userSummaryCache.getBatch(uidList);  // 有的就返回 value ，没有就返回一个快速跳过的实体
         return req.getReqList()
                 .stream()
                 .map(a -> batch.containsKey(a.getUid()) ? batch.get(a.getUid()) : SummeryInfoDTO.skip(a.getUid()))
@@ -154,8 +158,8 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<ItemInfoDTO> getItemInfo(ItemInfoReq req) {//简单做，更新时间可判断被修改
         return req.getReqList().stream().map(a -> {
-            ItemConfig itemConfig = itemCache.getById(a.getItemId());
-            if (Objects.nonNull(a.getLastModifyTime()) && a.getLastModifyTime() >= itemConfig.getUpdateTime().getTime()) {
+            ItemConfig itemConfig = itemCache.getById(a.getItemId()); //就不用批量缓存框架了，就用简单的springCache 就行了
+            if (Objects.nonNull(a.getLastModifyTime()) && a.getLastModifyTime() >= itemConfig.getUpdateTime().getTime()) {  //和徽章的修改时间做比较就行了
                 return ItemInfoDTO.skip(a.getItemId());
             }
             ItemInfoDTO dto = new ItemInfoDTO();
@@ -166,14 +170,16 @@ public class UserServiceImpl implements UserService {
         }).collect(Collectors.toList());
     }
 
+
     private List<Long> getNeedSyncUidList(List<SummeryInfoReq.infoReq> reqList) {
         List<Long> needSyncUidList = new ArrayList<>();
+        //获取用户的更新时间
         List<Long> userModifyTime = userCache.getUserModifyTime(reqList.stream().map(SummeryInfoReq.infoReq::getUid).collect(Collectors.toList()));
         for (int i = 0; i < reqList.size(); i++) {
             SummeryInfoReq.infoReq infoReq = reqList.get(i);
             Long modifyTime = userModifyTime.get(i);
-            if (Objects.isNull(infoReq.getLastModifyTime()) || (Objects.nonNull(modifyTime) && modifyTime > infoReq.getLastModifyTime())) {
-                needSyncUidList.add(infoReq.getUid());
+            if (Objects.isNull(infoReq.getLastModifyTime()) || (Objects.nonNull(modifyTime) && modifyTime > infoReq.getLastModifyTime())) { //前端发来的最后一次更新时间小于我们redis里面的最后的更新时间，说明有更新
+                needSyncUidList.add(infoReq.getUid());//需要更新的新的uid集合
             }
         }
         return needSyncUidList;

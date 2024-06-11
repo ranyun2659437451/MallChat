@@ -19,7 +19,13 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Component;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -102,12 +108,12 @@ public class UserCache {
         return CursorUtils.getCursorPageByRedis(pageBaseReq, RedisKey.getKey(RedisKey.OFFLINE_UID_ZET), Long::parseLong);
     }
 
-    public List<Long> getUserModifyTime(List<Long> uidList) {
+    public List<Long> getUserModifyTime(List<Long> uidList) { //在redis中存的用户最新的更新信息  alt+ F7 快熟查看被哪里使用到了
         List<String> keys = uidList.stream().map(uid -> RedisKey.getKey(RedisKey.USER_MODIFY_STRING, uid)).collect(Collectors.toList());
-        return RedisUtils.mget(keys, Long.class);
+        return RedisUtils.mget(keys, Long.class);//批量获取get
     }
 
-    public void refreshUserModifyTime(Long uid) {
+    public void refreshUserModifyTime(Long uid) { //刷新redis中的用户最新更新时间
         String key = RedisKey.getKey(RedisKey.USER_MODIFY_STRING, uid);
         RedisUtils.set(key, new Date().getTime());
     }
@@ -120,7 +126,7 @@ public class UserCache {
     }
 
     /**
-     * 获取用户信息，盘路缓存模式
+     * 获取用户信息，盘路缓存模式  很多地方都会用到
      */
     public Map<Long, User> getUserInfoBatch(Set<Long> uids) {
         //批量组装key
@@ -128,20 +134,22 @@ public class UserCache {
         //批量get
         List<User> mget = RedisUtils.mget(keys, User.class);
         Map<Long, User> map = mget.stream().filter(Objects::nonNull).collect(Collectors.toMap(User::getId, Function.identity()));
-        //发现差集——还需要load更新的uid
+        //发现差集——还需要load更新的uid 剩下的就是redis中没有的uid集合 需要重新load加载查数据库的  1234  124  -》3
         List<Long> needLoadUidList = uids.stream().filter(a -> !map.containsKey(a)).collect(Collectors.toList());
         if (CollUtil.isNotEmpty(needLoadUidList)) {
             //批量load
-            List<User> needLoadUserList = userDao.listByIds(needLoadUidList);
+            List<User> needLoadUserList = userDao.listByIds(needLoadUidList);//批量查询 只要一次数据库连接
+            //封装成map
             Map<String, User> redisMap = needLoadUserList.stream().collect(Collectors.toMap(a -> RedisKey.getKey(RedisKey.USER_INFO_STRING, a.getId()), Function.identity()));
+            //设置redis过期时间
             RedisUtils.mset(redisMap, 5 * 60);
             //加载回redis
             map.putAll(needLoadUserList.stream().collect(Collectors.toMap(User::getId, Function.identity())));
         }
-        return map;
+        return map;//这里面有redis里面的1，2，4 ，加上数据库查出来的3 就是全部1234
     }
 
-    public void userInfoChange(Long uid) {
+    public void  userInfoChange(Long uid) {
         delUserInfo(uid);
         //删除UserSummaryCache，前端下次懒加载的时候可以获取到最新的数据
         userSummaryCache.delete(uid);

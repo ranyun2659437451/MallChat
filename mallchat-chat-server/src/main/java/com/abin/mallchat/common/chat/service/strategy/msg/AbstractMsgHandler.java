@@ -23,7 +23,7 @@ public abstract class AbstractMsgHandler<Req> {
     private MessageDao messageDao;
     private Class<Req> bodyClass;
 
-    @PostConstruct
+    @PostConstruct // 初始化
     private void init() {
         ParameterizedType genericSuperclass = (ParameterizedType) this.getClass().getGenericSuperclass();
         this.bodyClass = (Class<Req>) genericSuperclass.getActualTypeArguments()[0];
@@ -35,11 +35,12 @@ public abstract class AbstractMsgHandler<Req> {
      */
     abstract MessageTypeEnum getMsgTypeEnum();
 
+    // 校验
     protected void checkMsg(Req body, Long roomId, Long uid) {
 
     }
 
-    @Transactional
+    @Transactional //有2个保存
     public Long checkAndSaveMsg(ChatMessageReq request, Long uid) {
         Req body = this.toBean(request.getBody());
         //统一校验

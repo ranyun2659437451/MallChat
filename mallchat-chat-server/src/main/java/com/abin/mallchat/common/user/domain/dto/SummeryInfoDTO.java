@@ -19,7 +19,7 @@ import java.util.List;
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonInclude(JsonInclude.Include.NON_NULL) //如果是null不返回这个字段
 public class SummeryInfoDTO {
     @ApiModelProperty(value = "用户id")
     private Long uid;

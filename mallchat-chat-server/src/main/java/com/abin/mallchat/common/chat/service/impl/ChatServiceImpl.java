@@ -5,12 +5,30 @@ import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.date.DateUnit;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.lang.Pair;
-import com.abin.mallchat.common.chat.dao.*;
+import com.abin.mallchat.common.chat.dao.ContactDao;
+import com.abin.mallchat.common.chat.dao.GroupMemberDao;
+import com.abin.mallchat.common.chat.dao.MessageDao;
+import com.abin.mallchat.common.chat.dao.MessageMarkDao;
+import com.abin.mallchat.common.chat.dao.RoomDao;
+import com.abin.mallchat.common.chat.dao.RoomFriendDao;
+import com.abin.mallchat.common.chat.dao.RoomGroupDao;
 import com.abin.mallchat.common.chat.domain.dto.MsgReadInfoDTO;
-import com.abin.mallchat.common.chat.domain.entity.*;
+import com.abin.mallchat.common.chat.domain.entity.Contact;
+import com.abin.mallchat.common.chat.domain.entity.GroupMember;
+import com.abin.mallchat.common.chat.domain.entity.Message;
+import com.abin.mallchat.common.chat.domain.entity.MessageMark;
+import com.abin.mallchat.common.chat.domain.entity.Room;
+import com.abin.mallchat.common.chat.domain.entity.RoomFriend;
+import com.abin.mallchat.common.chat.domain.entity.RoomGroup;
 import com.abin.mallchat.common.chat.domain.enums.MessageMarkActTypeEnum;
 import com.abin.mallchat.common.chat.domain.enums.MessageTypeEnum;
-import com.abin.mallchat.common.chat.domain.vo.request.*;
+import com.abin.mallchat.common.chat.domain.vo.request.ChatMessageBaseReq;
+import com.abin.mallchat.common.chat.domain.vo.request.ChatMessageMarkReq;
+import com.abin.mallchat.common.chat.domain.vo.request.ChatMessageMemberReq;
+import com.abin.mallchat.common.chat.domain.vo.request.ChatMessagePageReq;
+import com.abin.mallchat.common.chat.domain.vo.request.ChatMessageReadInfoReq;
+import com.abin.mallchat.common.chat.domain.vo.request.ChatMessageReadReq;
+import com.abin.mallchat.common.chat.domain.vo.request.ChatMessageReq;
 import com.abin.mallchat.common.chat.domain.vo.request.member.MemberReq;
 import com.abin.mallchat.common.chat.domain.vo.response.ChatMemberListResp;
 import com.abin.mallchat.common.chat.domain.vo.response.ChatMemberStatisticResp;
@@ -51,7 +69,13 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import javax.annotation.Nullable;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Date;
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
 import java.util.stream.Collectors;
 
 /**
@@ -103,7 +127,7 @@ public class ChatServiceImpl implements ChatService {
     @Transactional
     public Long sendMsg(ChatMessageReq request, Long uid) {
         check(request, uid);
-        AbstractMsgHandler<?> msgHandler = MsgHandlerFactory.getStrategyNoNull(request.getMsgType());
+        AbstractMsgHandler<?> msgHandler = MsgHandlerFactory.getStrategyNoNull(request.getMsgType());//根据类型获取消息处理策略类 工厂模式
         Long msgId = msgHandler.checkAndSaveMsg(request, uid);
         //发布消息发送事件
         applicationEventPublisher.publishEvent(new MessageSendEvent(this, msgId));
@@ -115,12 +139,12 @@ public class ChatServiceImpl implements ChatService {
         if (room.isHotRoom()) {//全员群跳过校验
             return;
         }
-        if (room.isRoomFriend()) {
+        if (room.isRoomFriend()) {//单聊
             RoomFriend roomFriend = roomFriendDao.getByRoomId(request.getRoomId());
             AssertUtil.equal(NormalOrNoEnum.NORMAL.getStatus(), roomFriend.getStatus(), "您已经被对方拉黑");
             AssertUtil.isTrue(uid.equals(roomFriend.getUid1()) || uid.equals(roomFriend.getUid2()), "您已经被对方拉黑");
         }
-        if (room.isRoomGroup()) {
+        if (room.isRoomGroup()) {//群聊
             RoomGroup roomGroup = roomGroupCache.get(request.getRoomId());
             GroupMember member = groupMemberDao.getMember(roomGroup.getId(), uid);
             AssertUtil.isNotEmpty(member, "您已经被移除该群");

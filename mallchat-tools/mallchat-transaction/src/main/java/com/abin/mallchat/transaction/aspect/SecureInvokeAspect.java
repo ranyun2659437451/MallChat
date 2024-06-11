@@ -56,7 +56,7 @@ public class SecureInvokeAspect {
         SecureInvokeRecord record = SecureInvokeRecord.builder()
                 .secureInvokeDTO(dto)
                 .maxRetryTimes(secureInvoke.maxRetryTimes())
-                .nextRetryTime(DateUtil.offsetMinute(new Date(), (int) SecureInvokeService.RETRY_INTERVAL_MINUTES))
+                .nextRetryTime(DateUtil.offsetMinute(new Date(), (int) SecureInvokeService.RETRY_INTERVAL_MINUTES))//最大执行时间
                 .build();
         secureInvokeService.invoke(record, async);
         return null;

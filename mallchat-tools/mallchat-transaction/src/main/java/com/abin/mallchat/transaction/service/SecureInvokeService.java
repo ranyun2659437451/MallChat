@@ -85,7 +85,7 @@ public class SecureInvokeService {
             @Override
             public void afterCommit() {
                 //事务后执行
-                if (async) {
+                if (async) { //异步用线程池调用
                     doAsyncInvoke(record);
                 } else {
                     doInvoke(record);

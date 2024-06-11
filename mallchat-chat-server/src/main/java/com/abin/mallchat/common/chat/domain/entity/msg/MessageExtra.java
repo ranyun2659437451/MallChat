@@ -22,7 +22,7 @@ import java.util.Map;
 @AllArgsConstructor
 @NoArgsConstructor
 @JsonIgnoreProperties(ignoreUnknown = true)
-@JsonInclude(JsonInclude.Include.NON_NULL)
+@JsonInclude(JsonInclude.Include.NON_NULL) // 序列化时忽略null字段 节约网络带宽
 public class MessageExtra implements Serializable {
     private static final long serialVersionUID = 1L;
     //url跳转链接

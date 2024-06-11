@@ -15,8 +15,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class SecureInvokeDTO {
-    private String className;
-    private String methodName;
-    private String parameterTypes;
-    private String args;
+    private String className; //类名
+    private String methodName; //方法名
+    private String parameterTypes; //入参类型
+    private String args; //入参参数
 }

@@ -25,7 +25,7 @@ public class ItemCache {//todo 多级缓存
     }
 
     @Cacheable(cacheNames = "item", key = "'item:'+#itemId")
-    public ItemConfig getById(Long itemId) {
+    public ItemConfig   getById(Long itemId) {
         return itemConfigDao.getById(itemId);
     }
 }

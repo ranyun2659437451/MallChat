@@ -1,5 +1,6 @@
 package com.abin.mallchat.transaction.service;
 
+import cn.hutool.core.util.RandomUtil;
 import com.abin.mallchat.transaction.annotation.SecureInvoke;
 import org.apache.rocketmq.spring.core.RocketMQTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -27,8 +28,12 @@ public class MQProducer {
      * @param topic
      * @param body
      */
-    @SecureInvoke
+    //@SecureInvoke
+    @SecureInvoke(async=false)
     public void sendSecureMsg(String topic, Object body, Object key) {
+        if (RandomUtil.randomInt(3)>1) {
+            throw new IllegalArgumentException("测试异常");
+        }
         Message<Object> build = MessageBuilder
                 .withPayload(body)
                 .setHeader("KEYS", key)
